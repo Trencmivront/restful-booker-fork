@@ -1,0 +1,351 @@
+{
+  "info": {
+    "_postman_id": "cad4ed2c-9390-43f7-941e-c39059537f44",
+    "name": "restful-booker",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "45029381"
+  },
+  "item": [
+    {
+      "name": "Ping",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Expect ping status code to be 201\", () => {\n    try{\n        pm.response.to.have.status(201);\n    }catch(e){\n        console.log(\"Ping test failed. Server is not running. Exiting from the test sequence.\");\n        // setting next request to null will make program exit\n        pm.execution.setNextRequest(null);\n    }\n});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3001/ping",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3001",
+          "path": [
+            "ping"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "CreateToken",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.response.to.have.status(200);\n\npm.test(\"Test that response body has token\", () => {\n    const response = pm.response.json();\n    pm.expect(response.token).to.exists;\n    pm.environment.set(\"response\", response);\n});\n\npm.test(\"Test that response type is string\", ()=>{\n    try{\n        const response = pm.environment.get(\"response\");\n        pm.expect(response.token).to.be.a(\"string\");\n        // pass and save token\n        pm.collectionVariables.set(\"token\", response.token);\n        pm.execution.setNextRequest(\"CreateBooking\");\n    }catch(e){\n        console.log(\"Response is not type of string.\");\n        pm.execution.setNextRequest(null);\n    }\n});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"username\" : \"admin\",\n    \"password\" : \"password123\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:3001/auth",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3001",
+          "path": [
+            "auth"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "CreateBooking",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Test that response code is 200\", () => {\n    pm.response.to.have.status(200);\n});\n\npm.test(\"Test that returned body has bookId\", () => {\n    pm.response.to.have.jsonBody('bookingid');\n    pm.collectionVariables.set(\"bookingId\", pm.response.json().bookingid);\n    pm.execution.setNextRequest(\"GetBooking\");\n    pm.execution.setNextRequest(\"PartialUpdateBooking\");\n});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"firstname\" : \"Jim\",\n    \"lastname\" : \"Brown\",\n    \"totalprice\" : 111,\n    \"depositpaid\" : true,\n    \"bookingdates\" : {\n        \"checkin\" : \"2018-01-01\",\n        \"checkout\" : \"2019-01-01\"\n    },\n    \"additionalneeds\" : \"Breakfast\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:3001/booking",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3001",
+          "path": [
+            "booking"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "PartialUpdateBooking",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.response.to.have.status(200);\n\npm.test(\"Check returned body is correct.\", () => {\n    const response = pm.response.json(); \n\n    pm.expect(response).to.have.property(\"firstname\");\n    pm.expect(response).to.have.property(\"lastname\");\n    pm.expect(response).to.have.property(\"totalprice\");\n    pm.expect(response).to.have.property(\"depositpaid\");\n    pm.expect(response).to.have.property(\"bookingdates\");\n    pm.expect(response.bookingdates).to.have.property(\"checkin\");\n    pm.expect(response.bookingdates).to.have.property(\"checkout\");\n    pm.expect(response).to.have.property(\"additionalneeds\");\n\n});\n\npm.test(\"Check that booking is updated\", () => {\n    const request = JSON.parse(pm.collectionVariables.get(\"requestBody\"));\n    console.log(request);\n    const bookingData = pm.response.json();\n    \n    pm.expect(bookingData.firstname).to.equal(request.firstname);\n    pm.expect(bookingData.lastname).to.equal(request.lastname);\n\n    pm.execution.setNextRequest(\"DeleteBooking\");\n});\n"
+            ]
+          }
+        },
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "\nfunction interpolate (value) {\n    const {Property} = require('postman-collection');\n    return Property.replaceSubstitutions(value, pm.variables.toObject());\n}\npm.collectionVariables.set(\"requestBody\", interpolate(pm.request.body.toString()));\nconsole.log(pm.collectionVariables.get(\"requestBody\"));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Cookie",
+            "value": "token={{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"firstname\" : \"JamesEs\",\n    \"lastname\" : \"Brown\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:3001/booking/{{bookingId}}",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3001",
+          "path": [
+            "booking",
+            "{{bookingId}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "UpdateBooking",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.response.to.have.status(200);\n\npm.test(\"Check returned body is correct.\", () => {\n    const response = pm.response.json();\n    pm.environment.set(\"response\", response);\n    pm.expect(response).to.have.property(\"firstname\");\n    pm.expect(response).to.have.property(\"lastname\");\n    pm.expect(response).to.have.property(\"totalprice\");\n    pm.expect(response).to.have.property(\"depositpaid\");\n    pm.expect(response).to.have.property(\"bookingdates\");\n    pm.expect(response.bookingdates).to.have.property(\"checkin\");\n    pm.expect(response.bookingdates).to.have.property(\"checkout\");\n    pm.expect(response).to.have.property(\"additionalneeds\");\n});\n\npm.test(\"Check that booking is updated\", () => {\n    const request = JSON.parse(pm.collectionVariables.get(\"requestBody\"));\n    console.log(request);\n    const bookingData = pm.environment.get(\"response\");\n    \n    pm.expect(bookingData.firstname).to.equal(request.firstname);\n    pm.expect(bookingData.lastname).to.equal(request.lastname);\n    pm.expect(bookingData.totalprice).to.equal(request.totalprice);\n    pm.expect(bookingData.depositpaid).to.equal(request.depositpaid);\n    pm.expect(bookingData.bookingdates.checkin).to.equal(request.bookingdates.checkin);\n    pm.expect(bookingData.bookingdates.checkout).to.equal(request.bookingdates.checkout);\n    pm.expect(bookingData.additionalneeds).to.equal(request.additionalneeds);\n\n    pm.execution.setNextRequest(\"DeleteBooking\");\n});"
+            ]
+          }
+        },
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "\nfunction interpolate (value) {\n    const {Property} = require('postman-collection');\n    return Property.replaceSubstitutions(value, pm.variables.toObject());\n}\npm.collectionVariables.set(\"requestBody\", interpolate(pm.request.body.toString()));\nconsole.log(pm.collectionVariables.get(\"requestBody\"));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Cookie",
+            "value": "token={{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"firstname\" : \"James\",\n    \"lastname\" : \"Brown\",\n    \"totalprice\" : 111,\n    \"depositpaid\" : true,\n    \"bookingdates\" : {\n        \"checkin\" : \"2018-01-01\",\n        \"checkout\" : \"2019-01-01\"\n    },\n    \"additionalneeds\" : \"Breakfast\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:3001/booking/{{bookingId}}",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3001",
+          "path": [
+            "booking",
+            "{{bookingId}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GetBooking",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.response.to.have.status(200);\nconst response = pm.response.json();\n\nif(response.length === 0){\n    console.log(\"Response is empty for book id: \" + pm.collectionVariables.get(\"bookingId\"));\n    return;\n}else{\n    pm.test(\"Check returned body is correct.\", () => {\n        pm.environment.set(\"response\", response);\n        pm.expect(response).to.have.property(\"firstname\");\n        pm.expect(response).to.have.property(\"lastname\");\n        pm.expect(response).to.have.property(\"totalprice\");\n        pm.expect(response).to.have.property(\"depositpaid\");\n        pm.expect(response).to.have.property(\"bookingdates\");\n        pm.expect(response.bookingdates).to.have.property(\"checkin\");\n        pm.expect(response.bookingdates).to.have.property(\"checkout\");\n        pm.expect(response).to.have.property(\"additionalneeds\");\n    });\n}\n\n"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3001/booking/{{bookingId}}",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3001",
+          "path": [
+            "booking",
+            "{{bookingId}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GetBookingIDs",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3001/booking",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3001",
+          "path": [
+            "booking"
+          ],
+          "query": [
+            {
+              "key": "firstname",
+              "value": "",
+              "disabled": true
+            },
+            {
+              "key": "lastname",
+              "value": "",
+              "disabled": true
+            },
+            {
+              "key": "checkin",
+              "value": "2020-12-10",
+              "disabled": true
+            },
+            {
+              "key": "checkout",
+              "value": "",
+              "disabled": true
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "DeleteBooking",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Check that status code is 201\", () => {\n    // Bad status code choice for a delete request. \n    pm.expect(pm.response.code).to.eql(201);\n});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Cookie",
+            "value": "token={{token}}"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:3001/booking/{{bookingId}}",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3001",
+          "path": [
+            "booking",
+            "{{bookingId}}"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "bookingId",
+      "value": ""
+    },
+    {
+      "key": "requestBody",
+      "value": ""
+    }
+  ]
+}
