@@ -3,14 +3,14 @@ on: [push, pull_request]
 # Things that will be done on push and pull
 jobs:
     test:
-		# The system image which test runs
+# The system image which test runs
      runs-on: ubuntu-latest
      steps:
-		# use github actions
+# use github actions
         - uses: actions/checkout@v7
-		# the terminal commands to run
+# the terminal commands to run
         - run: sudo npm install -g postman-cli
         - run: |
             postman collection run \
-            restful-booker.postman_collection.json \
+            /restful-booker.postman_collection.json \
             -r cli, junit \
